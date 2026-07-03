@@ -100,14 +100,9 @@ cleany/
 │   └── robot/                          # robot, sensor, frame 설정
 ├── tools/
 │   └── scripts/                        # 개발/운영 보조 스크립트
-├── tests/
-│   └── integration/                    # end-to-end 통합 테스트
-└── gdrive/                             # rclone mount 기반 지식베이스/원본 자료
-    └── Obsidian_Vault/                 # LLMWiki
+└── tests/
+    └── integration/                    # end-to-end 통합 테스트
 ```
-
-`gdrive/`는 코드가 아니라 Google Drive 마운트 경로이므로 git에 커밋하지 않는다.
-프로젝트 지식은 `gdrive/Obsidian_Vault/llms.txt`를 진입점으로 읽는다.
 
 ## 초기 개발 범위
 
