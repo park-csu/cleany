@@ -1,0 +1,5 @@
+# cleany_logger
+
+Cleany event log와 failure code 기록을 담당하는 ROS 2 패키지.
+
+실패 원인은 `DETECTION_FAIL`, `DEPTH_FAIL`, `LOW_CONFIDENCE`, `OUT_OF_WORKSPACE`, `GRASP_FAIL`, `PLACE_FAIL`, `NAVIGATION_FAIL`, `COLLISION_RISK`, `HARDWARE_ERROR`, `TIMEOUT`, `UNKNOWN_OBJECT`, `USER_INTERVENTION_REQUIRED`처럼 구조화해서 남긴다.
