@@ -1,0 +1,6 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": ["simulation/mujoco/.venv/lib/python3.13/site-packages"],
+  "stubPath": "simulation/mujoco/typings"
+}
