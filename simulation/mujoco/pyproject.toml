@@ -1,0 +1,16 @@
+[project]
+name = "cleany-mujoco"
+version = "0.1.0"
+description = "MuJoCo simulation project for Cleany"
+requires-python = ">=3.13"
+dependencies = [
+    "mujoco",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pybind11-stubgen>=2.5.5",
+]
