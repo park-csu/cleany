@@ -1,0 +1,12 @@
+from enum import Enum
+
+
+class MissionState(str, Enum):
+    IDLE = "IDLE"
+    NAVIGATE_TO_TARGET = "NAVIGATE_TO_TARGET"
+    PERCEIVE = "PERCEIVE"
+    PLAN_TASKS = "PLAN_TASKS"
+    EXECUTE_TASKS = "EXECUTE_TASKS"
+    RETURN_HOME = "RETURN_HOME"
+    REPORT = "REPORT"
+    ERROR = "ERROR"
