@@ -44,6 +44,11 @@ class MissionManager:
             raise RuntimeError(f"Cannot start mission from state {self.state}")
         self.context = MissionContext(request=request, state=MissionState.NAVIGATE_TO_TARGET)
 
+    def reset(self) -> None:
+        if self.state != MissionState.ERROR:
+            raise RuntimeError(f"Cannot reset from state {self.state}; reset() is only valid from ERROR")
+        self.context = MissionContext()
+
     def run_until_idle_or_error(self) -> MissionReport | None:
         while self.state not in (MissionState.IDLE, MissionState.ERROR):
             self.step()
@@ -111,6 +116,7 @@ class MissionManager:
     def _handle_non_ok_result(self, result: ModuleResult[object], *, state_key: str) -> None:
         if result.status == ResultStatus.FATAL:
             self.context.report = self._make_report("FAILED", result)
+            self.reporter.publish(self.context.report)
             self.context.state = MissionState.ERROR
             return
 

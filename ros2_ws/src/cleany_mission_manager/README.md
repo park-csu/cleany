@@ -157,8 +157,8 @@ stateDiagram-v2
 ### ERROR
 
 - mission을 중단한다.
-- fatal failure를 기록한다.
-- reset 또는 운영자 개입을 기다린다.
+- fatal failure를 기록하고 즉시 report한다.
+- reset 또는 운영자 개입을 기다린다. `MissionManager.reset()`을 호출하면 `IDLE`로 돌아간다. `reset()`은 `ERROR` 상태에서만 허용된다.
 
 ## Inputs and Outputs
 
