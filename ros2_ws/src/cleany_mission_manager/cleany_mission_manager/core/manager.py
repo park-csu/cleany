@@ -128,9 +128,23 @@ class MissionManager:
     def _handle_plan_result(self, result: ModuleResult[object]) -> None:
         if result.status == ResultStatus.OK:
             self.context.plan = result.data
+            self._record_non_actionable_tasks(result.data)
             self.context.state = MissionState.EXECUTE_TASKS
             return
         self._handle_non_ok_result(result, retry_key=str(self.state))
+
+    def _record_non_actionable_tasks(self, plan: object) -> None:
+        if not isinstance(plan, dict):
+            return
+        for task in plan.get("tasks", []):
+            if not isinstance(task, dict):
+                continue
+            action = task.get("action")
+            if action == "human_review":
+                self.context.needs_human_review = True
+                self.context.skipped_tasks.append(task.get("task_id", action))
+            elif action == "skip":
+                self.context.skipped_tasks.append(task.get("task_id", action))
 
     def _handle_non_ok_result(
         self,
@@ -166,8 +180,15 @@ class MissionManager:
 
     def _publish_report(self) -> None:
         if self.context.report is None:
-            self.context.report = self._make_report("SUCCESS")
+            self.context.report = self._make_report(self._success_status())
         self.reporter.publish(self.context.report)
+
+    def _success_status(self) -> str:
+        if self.context.needs_human_review:
+            return "HUMAN_REVIEW_REQUIRED"
+        if self.context.skipped_tasks:
+            return "PARTIAL_SUCCESS"
+        return "SUCCESS"
 
     def _make_report(
         self,
@@ -184,4 +205,6 @@ class MissionManager:
             failure_code=failure_code,
             summary=message,
             completed_tasks=list(self.context.completed_skills),
+            skipped_tasks=list(self.context.skipped_tasks),
+            needs_human_review=self.context.needs_human_review,
         )

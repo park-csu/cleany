@@ -272,3 +272,75 @@ def test_skill_retries_exhaust_and_preserve_partial_progress() -> None:
     assert report.completed_tasks == ["pick_object"]
     # default max_retries_per_skill is 2: 1 initial attempt + 2 retries = 3 calls for place_object.
     assert len(skill_executor.skills_seen) == 4
+
+
+def test_skipped_task_reports_partial_success() -> None:
+    planner = ScriptedPlanner(
+        [
+            ModuleResult.success(
+                {
+                    "tasks": [
+                        {"task_id": "task_1", "action": "collect", "object_id": "obj_1"},
+                        {"task_id": "task_2", "action": "skip", "object_id": "obj_2"},
+                    ],
+                    "skill_sequence": [
+                        {"skill": "pick_object", "args": {"object_id": "obj_1"}},
+                        {"skill": "place_object", "args": {"target": "trash_bin"}},
+                    ],
+                },
+                "plan created",
+            )
+        ]
+    )
+    reporter = InMemoryReporter()
+    manager = MissionManager(
+        navigator=MockNavigator(),
+        perception=MockPerception(),
+        planner=planner,
+        skill_executor=MockSkillExecutor(),
+        reporter=reporter,
+    )
+
+    _start(manager)
+    report = manager.run_until_idle_or_error()
+
+    assert manager.state == MissionState.IDLE
+    assert report is not None
+    assert report.status == "PARTIAL_SUCCESS"
+    assert report.completed_tasks == ["pick_object", "place_object"]
+    assert report.skipped_tasks == ["task_2"]
+    assert report.needs_human_review is False
+
+
+def test_human_review_task_reports_human_review_required() -> None:
+    planner = ScriptedPlanner(
+        [
+            ModuleResult.success(
+                {
+                    "tasks": [
+                        {"task_id": "task_1", "action": "human_review", "object_id": "obj_1"},
+                    ],
+                    "skill_sequence": [],
+                },
+                "plan created",
+            )
+        ]
+    )
+    reporter = InMemoryReporter()
+    manager = MissionManager(
+        navigator=MockNavigator(),
+        perception=MockPerception(),
+        planner=planner,
+        skill_executor=MockSkillExecutor(),
+        reporter=reporter,
+    )
+
+    _start(manager)
+    report = manager.run_until_idle_or_error()
+
+    assert manager.state == MissionState.IDLE
+    assert report is not None
+    assert report.status == "HUMAN_REVIEW_REQUIRED"
+    assert report.needs_human_review is True
+    assert report.skipped_tasks == ["task_1"]
+    assert report.completed_tasks == []

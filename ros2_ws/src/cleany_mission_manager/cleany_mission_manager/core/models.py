@@ -34,4 +34,6 @@ class MissionContext:
     plan: Any | None = None
     next_skill_index: int = 0
     completed_skills: list[str] = field(default_factory=list)
+    skipped_tasks: list[str] = field(default_factory=list)
+    needs_human_review: bool = False
     report: MissionReport | None = None
