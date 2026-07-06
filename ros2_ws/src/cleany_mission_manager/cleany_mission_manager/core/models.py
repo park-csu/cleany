@@ -32,5 +32,6 @@ class MissionContext:
     retry_counts: dict[str, int] = field(default_factory=dict)
     world_state: Any | None = None
     plan: Any | None = None
+    next_skill_index: int = 0
     completed_skills: list[str] = field(default_factory=list)
     report: MissionReport | None = None

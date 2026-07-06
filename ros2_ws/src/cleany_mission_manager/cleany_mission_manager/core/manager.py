@@ -69,8 +69,7 @@ class MissionManager:
                 result = self.planner.plan(self.context.world_state)
                 self._handle_plan_result(result)
             case MissionState.EXECUTE_TASKS:
-                result = self.skill_executor.execute(self.context.plan)
-                self._handle_execution_result(result)
+                self._execute_next_skill()
             case MissionState.RETURN_HOME:
                 result = self.navigator.return_home(self.context.request)
                 self._handle_navigation_result(result, MissionState.REPORT)
@@ -80,6 +79,35 @@ class MissionManager:
             case MissionState.ERROR | MissionState.IDLE:
                 return
 
+    def _skill_sequence(self) -> list[object]:
+        plan = self.context.plan or {}
+        if isinstance(plan, dict):
+            return list(plan.get("skill_sequence", []))
+        return []
+
+    def _execute_next_skill(self) -> None:
+        skill_sequence = self._skill_sequence()
+        if self.context.next_skill_index >= len(skill_sequence):
+            self.context.state = MissionState.RETURN_HOME
+            return
+
+        skill = skill_sequence[self.context.next_skill_index]
+        result = self.skill_executor.execute_skill(skill)
+
+        if result.status == ResultStatus.OK:
+            skill_name = skill.get("skill") if isinstance(skill, dict) else str(skill)
+            self.context.completed_skills.append(skill_name)
+            self.context.next_skill_index += 1
+            if self.context.next_skill_index >= len(skill_sequence):
+                self.context.state = MissionState.RETURN_HOME
+            return
+
+        self._handle_non_ok_result(
+            result,
+            retry_key=f"skill:{self.context.next_skill_index}",
+            retry_limit=self.retry_policy.max_retries_per_skill,
+        )
+
     def _handle_navigation_result(
         self,
         result: ModuleResult[object],
@@ -88,32 +116,29 @@ class MissionManager:
         if result.status == ResultStatus.OK:
             self.context.state = success_state
             return
-        self._handle_non_ok_result(result, state_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state))
 
     def _handle_perception_result(self, result: ModuleResult[object]) -> None:
         if result.status == ResultStatus.OK:
             self.context.world_state = result.data
             self.context.state = MissionState.PLAN_TASKS
             return
-        self._handle_non_ok_result(result, state_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state))
 
     def _handle_plan_result(self, result: ModuleResult[object]) -> None:
         if result.status == ResultStatus.OK:
             self.context.plan = result.data
             self.context.state = MissionState.EXECUTE_TASKS
             return
-        self._handle_non_ok_result(result, state_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state))
 
-    def _handle_execution_result(self, result: ModuleResult[object]) -> None:
-        if result.status == ResultStatus.OK:
-            data = result.data or {}
-            if isinstance(data, dict):
-                self.context.completed_skills = list(data.get("completed_skills", []))
-            self.context.state = MissionState.RETURN_HOME
-            return
-        self._handle_non_ok_result(result, state_key=str(self.state))
-
-    def _handle_non_ok_result(self, result: ModuleResult[object], *, state_key: str) -> None:
+    def _handle_non_ok_result(
+        self,
+        result: ModuleResult[object],
+        *,
+        retry_key: str,
+        retry_limit: int | None = None,
+    ) -> None:
         if result.status == ResultStatus.FATAL:
             self.context.report = self._make_report("FAILED", result)
             self.reporter.publish(self.context.report)
@@ -125,15 +150,16 @@ class MissionManager:
             self.context.state = MissionState.REPORT
             return
 
-        if result.status == ResultStatus.FAILED and result.retryable and self._can_retry(state_key):
-            self._record_retry(state_key)
+        limit = retry_limit if retry_limit is not None else self.retry_policy.max_retries_per_state
+        if result.status == ResultStatus.FAILED and result.retryable and self._can_retry(retry_key, limit):
+            self._record_retry(retry_key)
             return
 
         self.context.report = self._make_report("FAILED", result)
         self.context.state = MissionState.REPORT
 
-    def _can_retry(self, key: str) -> bool:
-        return self.context.retry_counts.get(key, 0) < self.retry_policy.max_retries_per_state
+    def _can_retry(self, key: str, limit: int) -> bool:
+        return self.context.retry_counts.get(key, 0) < limit
 
     def _record_retry(self, key: str) -> None:
         self.context.retry_counts[key] = self.context.retry_counts.get(key, 0) + 1

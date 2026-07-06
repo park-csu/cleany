@@ -23,7 +23,7 @@ class Planner(Protocol):
 
 
 class SkillExecutor(Protocol):
-    def execute(self, plan: Any) -> ModuleResult[Any]:
+    def execute_skill(self, skill: Any) -> ModuleResult[Any]:
         ...
 
 

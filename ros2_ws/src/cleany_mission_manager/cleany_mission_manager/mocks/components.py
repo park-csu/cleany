@@ -80,14 +80,8 @@ class MockPlanner:
 
 
 class MockSkillExecutor:
-    def execute(self, plan: Any) -> ModuleResult[dict[str, Any]]:
-        return ModuleResult.success(
-            {
-                "completed_skills": ["pick_object", "place_object"],
-                "failed_skill": None,
-            },
-            "skills executed",
-        )
+    def execute_skill(self, skill: Any) -> ModuleResult[dict[str, Any]]:
+        return ModuleResult.success(message="skill executed")
 
 
 class ScriptedNavigator:
@@ -126,10 +120,12 @@ class ScriptedPlanner:
 
 class ScriptedSkillExecutor:
     def __init__(self, results: Sequence[ModuleResult[Any]]) -> None:
-        self._execute = _ScriptedCalls(results)
+        self._execute_skill = _ScriptedCalls(results)
+        self.skills_seen: list[Any] = []
 
-    def execute(self, plan: Any) -> ModuleResult[Any]:
-        return self._execute()
+    def execute_skill(self, skill: Any) -> ModuleResult[Any]:
+        self.skills_seen.append(skill)
+        return self._execute_skill()
 
 
 class InMemoryReporter:

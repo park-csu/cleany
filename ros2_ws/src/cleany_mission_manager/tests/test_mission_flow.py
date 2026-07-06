@@ -13,6 +13,7 @@ from cleany_mission_manager.mocks.components import (
     ScriptedNavigator,
     ScriptedPerception,
     ScriptedPlanner,
+    ScriptedSkillExecutor,
 )
 
 
@@ -208,3 +209,66 @@ def test_no_objects_detected_reports_blocked_without_planning() -> None:
     assert report is not None
     assert report.status == "BLOCKED"
     assert report.failure_code == FailureCode.NO_OBJECTS
+
+
+def test_failed_skill_retries_only_that_skill_not_the_whole_plan() -> None:
+    skill_executor = ScriptedSkillExecutor(
+        [
+            ModuleResult.success(message="pick_object ok"),
+            ModuleResult.failed(FailureCode.GRASP_FAIL, retryable=True, message="grasp glitch"),
+            ModuleResult.success(message="place_object ok"),
+        ]
+    )
+    reporter = InMemoryReporter()
+    manager = MissionManager(
+        navigator=MockNavigator(),
+        perception=MockPerception(),
+        planner=MockPlanner(),
+        skill_executor=skill_executor,
+        reporter=reporter,
+    )
+
+    _start(manager)
+    report = manager.run_until_idle_or_error()
+
+    assert manager.state == MissionState.IDLE
+    assert report is not None
+    assert report.status == "SUCCESS"
+    assert report.completed_tasks == ["pick_object", "place_object"]
+    # pick_object must only ever be attempted once; only place_object was retried.
+    assert [skill["skill"] for skill in skill_executor.skills_seen] == [
+        "pick_object",
+        "place_object",
+        "place_object",
+    ]
+
+
+def test_skill_retries_exhaust_and_preserve_partial_progress() -> None:
+    skill_executor = ScriptedSkillExecutor(
+        [
+            ModuleResult.success(message="pick_object ok"),
+            ModuleResult.failed(FailureCode.PLACE_FAIL, retryable=True, message="place glitch 1"),
+            ModuleResult.failed(FailureCode.PLACE_FAIL, retryable=True, message="place glitch 2"),
+            ModuleResult.failed(FailureCode.PLACE_FAIL, retryable=True, message="place glitch 3"),
+        ]
+    )
+    reporter = InMemoryReporter()
+    manager = MissionManager(
+        navigator=MockNavigator(),
+        perception=MockPerception(),
+        planner=MockPlanner(),
+        skill_executor=skill_executor,
+        reporter=reporter,
+    )
+
+    _start(manager)
+    report = manager.run_until_idle_or_error()
+
+    assert manager.state == MissionState.IDLE
+    assert report is not None
+    assert report.status == "FAILED"
+    assert report.failure_code == FailureCode.PLACE_FAIL
+    # pick_object succeeded and must be preserved even though the mission overall failed.
+    assert report.completed_tasks == ["pick_object"]
+    # default max_retries_per_skill is 2: 1 initial attempt + 2 retries = 3 calls for place_object.
+    assert len(skill_executor.skills_seen) == 4

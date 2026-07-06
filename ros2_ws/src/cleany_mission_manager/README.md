@@ -39,7 +39,7 @@ flowchart LR
     perception -->|"ModuleResult"| mm
     mm -->|"plan(world_state)"| planner
     planner -->|"ModuleResult"| mm
-    mm -->|"execute(plan)"| executor
+    mm -->|"execute_skill(skill), one at a time"| executor
     executor -->|"ModuleResult"| mm
     mm -->|"return_home()"| nav
     mm -->|"MissionReport"| reporter
@@ -227,10 +227,11 @@ PlanResult
 - tasks
 - skill_sequence
 
-SkillExecutionResult
-- completed_skills
-- failed_skill
+SkillExecutionResult (단일 skill 실행 결과, `execute_skill(skill)` 호출당 하나)
+- (skill별 부가 데이터, 있다면)
 ```
+
+`EXECUTE_TASKS`는 `plan.skill_sequence`를 한 번에 실행하지 않는다. Mission Manager가 skill 하나씩 `execute_skill(skill)`을 호출하고, 성공한 skill은 `completed_skills`에 누적한 뒤 다음 skill로 진행한다. 특정 skill이 retryable 실패를 반환하면 `max_retries_per_skill` 한도까지 **그 skill만** 재시도하며, 이미 완료된 앞선 skill은 다시 실행하지 않는다.
 
 Mission Manager는 세부 payload를 직접 해석하기보다, 우선 `status`, `failure_code`, `retryable`을 기준으로 상태를 전이한다.
 
