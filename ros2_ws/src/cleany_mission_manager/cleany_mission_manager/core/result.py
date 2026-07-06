@@ -66,3 +66,37 @@ class ModuleResult(Generic[T]):
             message=message,
             data=data,
         )
+
+    @classmethod
+    def blocked(
+        cls,
+        failure_code: FailureCode,
+        *,
+        message: str = "",
+        data: T | None = None,
+    ) -> "ModuleResult[T]":
+        return cls(
+            ok=False,
+            status=ResultStatus.BLOCKED,
+            failure_code=failure_code,
+            retryable=False,
+            message=message,
+            data=data,
+        )
+
+    @classmethod
+    def fatal(
+        cls,
+        failure_code: FailureCode,
+        *,
+        message: str = "",
+        data: T | None = None,
+    ) -> "ModuleResult[T]":
+        return cls(
+            ok=False,
+            status=ResultStatus.FATAL,
+            failure_code=failure_code,
+            retryable=False,
+            message=message,
+            data=data,
+        )
