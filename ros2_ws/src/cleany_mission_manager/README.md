@@ -83,27 +83,34 @@ MVP에서는 `SeatMap` 또는 `TargetResolver`를 별도 모듈로 두지 않는
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-    IDLE --> NAVIGATE_TO_TARGET: valid mission request
-    NAVIGATE_TO_TARGET --> PERCEIVE: navigation OK
-    PERCEIVE --> PLAN_TASKS: objects detected
-    PLAN_TASKS --> EXECUTE_TASKS: executable plan
-    EXECUTE_TASKS --> RETURN_HOME: skills OK
-    RETURN_HOME --> REPORT: returned or return failed
+    IDLE --> ACTIVE: valid mission request
     REPORT --> IDLE: report published
 
-    IDLE --> ERROR: fatal
-    NAVIGATE_TO_TARGET --> ERROR: fatal
-    PERCEIVE --> ERROR: fatal
-    PLAN_TASKS --> ERROR: fatal
-    EXECUTE_TASKS --> ERROR: fatal
-    RETURN_HOME --> ERROR: fatal
-    REPORT --> ERROR: fatal
+    state ACTIVE {
+        [*] --> NAVIGATE_TO_TARGET
+        NAVIGATE_TO_TARGET --> PERCEIVE: navigation OK
+        PERCEIVE --> PLAN_TASKS: objects detected
+        PLAN_TASKS --> EXECUTE_TASKS: executable plan
+        EXECUTE_TASKS --> RETURN_HOME: skills OK
+    }
 
-    NAVIGATE_TO_TARGET --> REPORT: blocked / retry exhausted
-    PERCEIVE --> REPORT: no objects / retry exhausted
-    PLAN_TASKS --> REPORT: empty / blocked / human review
-    EXECUTE_TASKS --> REPORT: failed / retry exhausted
+    ACTIVE --> REPORT: return complete / blocked / retry exhausted
+    ACTIVE --> ERROR: fatal
 ```
+
+`ACTIVE`는 실제 `MissionState`가 아니라, `NAVIGATE_TO_TARGET`/`PERCEIVE`/`PLAN_TASKS`/`EXECUTE_TASKS`/`RETURN_HOME`을 묶어 보여주기 위한 다이어그램 표기다. `IDLE`과 `REPORT`는 `ERROR`로 전이하지 않는다 (코드상 fatal 처리는 이 다섯 상태에서만 발생한다).
+
+각 상태가 `REPORT`로 조기 종료되는 조건:
+
+| 상태 | REPORT로 조기 종료되는 조건 |
+| --- | --- |
+| `NAVIGATE_TO_TARGET` | blocked / retryable 실패 소진 |
+| `PERCEIVE` | 물체 없음(`NO_OBJECTS`) / retryable 실패 소진 |
+| `PLAN_TASKS` | plan blocked / retryable 실패 소진 |
+| `EXECUTE_TASKS` | skill 실패(non-retryable 또는 retry 소진) |
+| `RETURN_HOME` | 항상 `REPORT`로 전이 (복귀 성공이든 재시도 소진이든) |
+
+`skip`/`human_review` task는 `PLAN_TASKS`를 조기 종료시키지 않는다. `plan()`이 `OK`를 반환하면 `EXECUTE_TASKS`로 정상 진행하고, `skipped_tasks`/`needs_human_review`는 `REPORT`에서 최종 `status`를 정할 때 반영된다 (자세한 내용은 [Report](#report) 참고).
 
 ## State Responsibilities
 
@@ -131,8 +138,8 @@ stateDiagram-v2
 ### PLAN_TASKS
 
 - Planner에 world state를 전달하고 task/skill sequence를 요청한다.
-- 실행 가능한 task가 있으면 `EXECUTE_TASKS`로 전이한다.
-- 모든 task가 `skip`이거나 `human_review`가 필요하면 `REPORT`로 전이한다.
+- plan이 `OK`이면 `EXECUTE_TASKS`로 전이한다. `skip`/`human_review` task는 `skipped_tasks`/`needs_human_review`에 기록해 두고, 최종 `status`는 `REPORT`에서 결정한다.
+- plan이 blocked이거나 retryable 실패가 소진되면 `REPORT`로 전이한다.
 
 ### EXECUTE_TASKS
 
