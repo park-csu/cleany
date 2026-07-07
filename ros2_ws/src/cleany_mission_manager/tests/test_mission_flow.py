@@ -72,6 +72,7 @@ def test_fatal_result_moves_to_error_and_reset_returns_to_idle() -> None:
     assert report is not None
     assert report.status == "FAILED"
     assert report.failure_code == FailureCode.HARDWARE_ERROR
+    assert report.failed_task == "NAVIGATE_TO_TARGET"
     assert len(reporter.reports) == 1
 
     manager.reset()
@@ -163,6 +164,7 @@ def test_retryable_failure_exhausts_retries_and_reports_failed() -> None:
     assert report is not None
     assert report.status == "FAILED"
     assert report.failure_code == FailureCode.NAVIGATION_FAIL
+    assert report.failed_task == "NAVIGATE_TO_TARGET"
     assert len(reporter.reports) == 1
 
 
@@ -270,6 +272,7 @@ def test_skill_retries_exhaust_and_preserve_partial_progress() -> None:
     assert report.failure_code == FailureCode.PLACE_FAIL
     # pick_object succeeded and must be preserved even though the mission overall failed.
     assert report.completed_tasks == ["pick_object"]
+    assert report.failed_task == "place_object"
     # default max_retries_per_skill is 2: 1 initial attempt + 2 retries = 3 calls for place_object.
     assert len(skill_executor.skills_seen) == 4
 

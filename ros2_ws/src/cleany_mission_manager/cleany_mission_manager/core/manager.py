@@ -92,10 +92,10 @@ class MissionManager:
             return
 
         skill = skill_sequence[self.context.next_skill_index]
+        skill_name = skill.get("skill") if isinstance(skill, dict) else str(skill)
         result = self.skill_executor.execute_skill(skill)
 
         if result.status == ResultStatus.OK:
-            skill_name = skill.get("skill") if isinstance(skill, dict) else str(skill)
             self.context.completed_skills.append(skill_name)
             self.context.next_skill_index += 1
             if self.context.next_skill_index >= len(skill_sequence):
@@ -106,6 +106,7 @@ class MissionManager:
             result,
             retry_key=f"skill:{self.context.next_skill_index}",
             retry_limit=self.retry_policy.max_retries_per_skill,
+            failed_task=skill_name,
         )
 
     def _handle_navigation_result(
@@ -116,14 +117,14 @@ class MissionManager:
         if result.status == ResultStatus.OK:
             self.context.state = success_state
             return
-        self._handle_non_ok_result(result, retry_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state), failed_task=self.state.name)
 
     def _handle_perception_result(self, result: ModuleResult[object]) -> None:
         if result.status == ResultStatus.OK:
             self.context.world_state = result.data
             self.context.state = MissionState.PLAN_TASKS
             return
-        self._handle_non_ok_result(result, retry_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state), failed_task=self.state.name)
 
     def _handle_plan_result(self, result: ModuleResult[object]) -> None:
         if result.status == ResultStatus.OK:
@@ -131,7 +132,7 @@ class MissionManager:
             self._record_non_actionable_tasks(result.data)
             self.context.state = MissionState.EXECUTE_TASKS
             return
-        self._handle_non_ok_result(result, retry_key=str(self.state))
+        self._handle_non_ok_result(result, retry_key=str(self.state), failed_task=self.state.name)
 
     def _record_non_actionable_tasks(self, plan: object) -> None:
         if not isinstance(plan, dict):
@@ -152,15 +153,16 @@ class MissionManager:
         *,
         retry_key: str,
         retry_limit: int | None = None,
+        failed_task: str | None = None,
     ) -> None:
         if result.status == ResultStatus.FATAL:
-            self.context.report = self._make_report("FAILED", result)
+            self.context.report = self._make_report("FAILED", result, failed_task=failed_task)
             self.reporter.publish(self.context.report)
             self.context.state = MissionState.ERROR
             return
 
         if result.status == ResultStatus.BLOCKED:
-            self.context.report = self._make_report("BLOCKED", result)
+            self.context.report = self._make_report("BLOCKED", result, failed_task=failed_task)
             self.context.state = MissionState.REPORT
             return
 
@@ -169,7 +171,7 @@ class MissionManager:
             self._record_retry(retry_key)
             return
 
-        self.context.report = self._make_report("FAILED", result)
+        self.context.report = self._make_report("FAILED", result, failed_task=failed_task)
         self.context.state = MissionState.REPORT
 
     def _can_retry(self, key: str, limit: int) -> bool:
@@ -194,6 +196,8 @@ class MissionManager:
         self,
         status: str,
         result: ModuleResult[object] | None = None,
+        *,
+        failed_task: str | None = None,
     ) -> MissionReport:
         request = self.context.request
         mission_id = request.mission_id if request else "unknown"
@@ -207,4 +211,5 @@ class MissionManager:
             completed_tasks=list(self.context.completed_skills),
             skipped_tasks=list(self.context.skipped_tasks),
             needs_human_review=self.context.needs_human_review,
+            failed_task=failed_task,
         )
