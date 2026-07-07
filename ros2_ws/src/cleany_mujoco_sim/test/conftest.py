@@ -1,0 +1,32 @@
+from pathlib import Path
+
+import pytest
+
+from cleany_mujoco_sim.scene_loader import load_model
+
+TINY_MJCF = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <freejoint/>
+      <geom type="box" size="0.1 0.1 0.1"/>
+      <body name="arm">
+        <joint name="shoulder" type="hinge" axis="0 0 1" range="-1 1"/>
+        <geom type="box" size="0.05 0.05 0.05" pos="0.2 0 0"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+@pytest.fixture
+def scene_path(tmp_path: Path) -> Path:
+    path = tmp_path / "scene.xml"
+    path.write_text(TINY_MJCF)
+    return path
+
+
+@pytest.fixture
+def model_data(scene_path: Path):
+    return load_model(scene_path)

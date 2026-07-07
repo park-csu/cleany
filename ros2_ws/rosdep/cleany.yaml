@@ -1,0 +1,4 @@
+mujoco:
+  pip:
+    packages:
+      - mujoco
