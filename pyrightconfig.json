@@ -1,18 +1,18 @@
 {
-  "include": ["src"],
+  "include": ["ros2_ws/src"],
   "exclude": [
-    "build",
-    "install",
-    "log",
+    "ros2_ws/build",
+    "ros2_ws/install",
+    "ros2_ws/log",
     "**/__pycache__",
-    "src/cleany_mujoco_sim/typings"
+    "ros2_ws/src/cleany_mujoco_sim/typings"
   ],
   "extraPaths": [
     "/opt/ros/humble/lib/python3.10/site-packages",
     "/opt/ros/humble/local/lib/python3.10/dist-packages",
     "/usr/local/lib/python3.10/dist-packages",
-    "src/cleany_mujoco_sim"
+    "ros2_ws/src/cleany_mujoco_sim"
   ],
-  "stubPath": "src/cleany_mujoco_sim/typings",
+  "stubPath": "ros2_ws/src/cleany_mujoco_sim/typings",
   "pythonVersion": "3.10"
 }
