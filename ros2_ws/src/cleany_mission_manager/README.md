@@ -363,6 +363,8 @@ MVP에서는 `human_review`를 별도 FSM 상태로 두지 않는다. 관리자 
 
 `PLAN_TASKS`에서 PlannerResult가 `OK`이면, Mission Manager는 `plan.tasks`에서 `action == "skip"` 또는 `action == "human_review"`인 task를 찾아 `skipped_tasks`에 기록한다. `human_review` task가 하나라도 있으면 `needs_human_review`를 켠다. `REPORT`에서 최종 `status`는 다음 우선순위로 정해진다: `needs_human_review` → `HUMAN_REVIEW_REQUIRED`, 그 외 `skipped_tasks`가 있으면 → `PARTIAL_SUCCESS`, 둘 다 아니면 → `SUCCESS`. `FAILED`/`BLOCKED`는 기존과 동일하게 `ModuleResult.status`에서 결정된다.
 
+`status`가 `FAILED` 또는 `BLOCKED`이면 `failed_task`에 실패 지점을 기록한다: `NAVIGATE_TO_TARGET`/`PERCEIVE`/`PLAN_TASKS` 단계에서 실패했으면 해당 state 이름, `EXECUTE_TASKS`에서 개별 skill이 실패했으면 그 skill 이름(예: `place_object`)이 들어간다. 그 외에는 `None`이다.
+
 Report 최소 필드:
 
 ```text
