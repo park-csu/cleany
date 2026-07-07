@@ -1,4 +1,5 @@
 mujoco:
-  pip:
-    packages:
-      - mujoco
+  ubuntu:
+    pip:
+      packages:
+        - mujoco

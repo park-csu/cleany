@@ -1,7 +1,4 @@
 from __future__ import annotations
-
-from typing import Any
-
 from functools import lru_cache
 
 import mujoco
@@ -12,7 +9,7 @@ _SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
 
 
 @lru_cache(maxsize=None)
-def actuated_joint_ids(model: Any) -> list[int]:
+def actuated_joint_ids(model: mujoco.MjModel) -> list[int]:
     return [i for i in range(model.njnt) if model.jnt_type[i] in _SCALAR_JOINT_TYPES]
 
 
@@ -22,18 +19,20 @@ def steps_per_tick(timestep: float, publish_rate_hz: float) -> int:
 
 
 @lru_cache(maxsize=None)
-def actuated_joint_names(model: Any) -> list[str]:
+def actuated_joint_names(model: mujoco.MjModel) -> list[str]:
     return [
         mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i)
         for i in actuated_joint_ids(model)
     ]
 
 
-def joint_positions(model: Any, data: Any) -> list[float]:
+def joint_positions(model: mujoco.MjModel, data: mujoco.MjData) -> list[float]:
     return [float(data.qpos[model.jnt_qposadr[i]]) for i in actuated_joint_ids(model)]
 
 
-def joint_state_msg(model: Any, data: Any, stamp: Time) -> JointState:
+def joint_state_msg(
+    model: mujoco.MjModel, data: mujoco.MjData, stamp: Time
+) -> JointState:
     msg = JointState()
     msg.header.stamp = stamp.to_msg()
     msg.name = actuated_joint_names(model)
@@ -41,7 +40,9 @@ def joint_state_msg(model: Any, data: Any, stamp: Time) -> JointState:
     return msg
 
 
-def apply_joint_cmd(model: Any, data: Any, msg: JointState) -> None:
+def apply_joint_cmd(
+    model: mujoco.MjModel, data: mujoco.MjData, msg: JointState
+) -> None:
     name_to_qposadr = {
         mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i): model.jnt_qposadr[i]
         for i in actuated_joint_ids(model)
