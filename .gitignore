@@ -16,3 +16,6 @@ ros2_ws/log/
 # Local artifacts
 *.log
 *.tmp
+
+# Working docs (specs/plans) - not committed
+docs/

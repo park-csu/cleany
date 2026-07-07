@@ -94,7 +94,8 @@ cleany/
 │       ├── cleany_perception/          # Vision/perception node, detection result publisher
 │       ├── cleany_skill_executor/      # navigate/pick/place/push skill 실행
 │       ├── cleany_robot_interface/     # Mock / Sim / Real 공통 로봇 인터페이스
-│       └── cleany_logger/              # event log, failure code logging
+│       ├── cleany_logger/              # event log, failure code logging
+│       └── cleany_mujoco_sim/               # MuJoCo 시뮬레이션 (XLeRobot)
 ├── configs/
 │   ├── mission/                        # mission, FSM, planner 설정
 │   └── robot/                          # robot, sensor, frame 설정
