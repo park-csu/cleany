@@ -15,6 +15,11 @@ if docker ps -a --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
   docker rm "${CONTAINER_NAME}" >/dev/null
 fi
 
+if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
+  echo "Docker image ${IMAGE_NAME} not found; building it now..." >&2
+  "${SCRIPT_DIR}/docker-build-humble.sh"
+fi
+
 if command -v xhost >/dev/null 2>&1 && [[ -n "${DISPLAY:-}" ]]; then
   xhost +local:docker >/dev/null 2>&1 || true
 fi

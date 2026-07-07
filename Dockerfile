@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop
+FROM ros:humble-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=humble
@@ -7,10 +7,15 @@ SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash-completion \
+    ca-certificates \
+    curl \
+    gnupg \
     libglfw3 \
     libosmesa6 \
     mesa-utils \
     python3-pip \
+    python3-colcon-common-extensions \
+    ros-humble-desktop \
     x11-apps \
     && rm -rf /var/lib/apt/lists/*
 
