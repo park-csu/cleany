@@ -37,7 +37,7 @@ Planning Layer     →   작업 계획 (RuleBasedPlanner → VLMPlanner)
 Execution Layer    →   로봇 제어 (Nav2 / MoveIt / LeRobot)
 ```
 
-FSM: `IDLE → SCAN → DETECT_OBJECTS → PLAN → EXECUTE_SKILL → VERIFY → REPORT`
+FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS → RETURN_HOME → REPORT` (any state → `ERROR`)
 
 ## 기술 스택
 
@@ -110,7 +110,7 @@ cleany/
 초기 MVP는 실제 로봇 없이도 검증 가능한 end-to-end 흐름을 우선한다.
 
 1. `cleany_interfaces`에서 perception result, mission command, skill action 인터페이스 초안 작성
-2. `cleany_mission_manager`에서 `IDLE → SCAN → DETECT_OBJECTS → PLAN → EXECUTE_SKILL → VERIFY → REPORT` FSM 구현
+2. `cleany_mission_manager`에서 `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS → RETURN_HOME → REPORT` FSM 구현
 3. `cleany_planner`에서 `Planner` 인터페이스와 `RuleBasedPlanner` 구현
 4. `cleany_robot_interface`에서 Mock / Sim / Real 공통 인터페이스 정의
 5. `cleany_skill_executor`에서 mock skill success/failure 실행
