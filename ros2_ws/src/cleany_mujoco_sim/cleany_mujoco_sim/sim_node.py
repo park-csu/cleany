@@ -24,7 +24,7 @@ from cleany_mujoco_sim.state import (
 
 class MujocoSimNode(Node):
     def __init__(self, **kwargs) -> None:
-        super().__init__('mujoco_sim', **kwargs)
+        super().__init__("mujoco_sim", **kwargs)
 
         self.declare_parameter('scene_path', '')
         self.declare_parameter('publish_rate_hz', 60.0)
@@ -71,7 +71,7 @@ class MujocoSimNode(Node):
             raise ValueError('scan_range_min must be less than scan_range_max')
 
         if not scene_path.exists():
-            raise FileNotFoundError(f'MuJoCo scene XML not found: {scene_path}')
+            raise FileNotFoundError(f"MuJoCo scene XML not found: {scene_path}")
 
         self._model, self._data = load_model(scene_path)
         self._base_body_id = mujoco.mj_name2id(
@@ -124,7 +124,7 @@ class MujocoSimNode(Node):
     def destroy_node(self) -> None:
         if self._viewer is not None:
             self._viewer.close()
-            self._viewer = None
+
         super().destroy_node()
 
     def _on_joint_cmd(self, msg: JointState) -> None:
@@ -189,5 +189,5 @@ def main(args: list[str] | None = None) -> None:
         rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
