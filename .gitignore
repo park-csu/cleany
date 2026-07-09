@@ -17,5 +17,3 @@ ros2_ws/log/
 *.log
 *.tmp
 
-# Working docs (specs/plans) - not committed
-docs/
