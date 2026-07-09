@@ -7,13 +7,17 @@ from cleany_mujoco_sim.scene_loader import load_model
 TINY_MJCF = """
 <mujoco>
   <worldbody>
-    <body name="base">
+    <body name="chassis">
       <freejoint/>
+      <site name="lidar_site" pos="0 0 0" size="0.01"/>
       <geom type="box" size="0.1 0.1 0.1"/>
       <body name="arm">
         <joint name="shoulder" type="hinge" axis="0 0 1" range="-1 1"/>
         <geom type="box" size="0.05 0.05 0.05" pos="0.2 0 0"/>
       </body>
+    </body>
+    <body name="scan_target" pos="1 0 0">
+      <geom type="box" size="0.05 0.5 0.5"/>
     </body>
   </worldbody>
 </mujoco>

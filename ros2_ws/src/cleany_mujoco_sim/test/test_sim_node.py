@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 import rclpy
 from rclpy.parameter import Parameter
-from sensor_msgs.msg import JointState
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState, LaserScan
 
 from cleany_mujoco_sim.sim_node import MujocoSimNode
 from cleany_mujoco_sim.state import joint_positions
@@ -15,9 +16,11 @@ def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
         'scene_path': str(scene_path),
         'publish_rate_hz': 1000.0,
         'headless': True,
+        'scan_samples': 8,
     }
     params.update(overrides)
     return MujocoSimNode(
+        namespace='test_mujoco_sim',
         parameter_overrides=[Parameter(name, value=value) for name, value in params.items()]
     )
 
@@ -40,12 +43,38 @@ def test_sim_node_publishes_joint_states(scene_path: Path):
         rclpy.shutdown()
 
 
+def test_sim_node_publishes_odometry_and_scan(scene_path: Path):
+    rclpy.init(args=[])
+    try:
+        node = _make_node(scene_path)
+        odom_received: list[Odometry] = []
+        scan_received: list[LaserScan] = []
+        node.create_subscription(Odometry, 'odom', odom_received.append, 10)
+        node.create_subscription(LaserScan, 'scan', scan_received.append, 10)
+
+        deadline = time.time() + 2.0
+        while (not odom_received or not scan_received) and time.time() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+        assert odom_received
+        assert odom_received[0].header.frame_id == 'odom'
+        assert odom_received[0].child_frame_id == 'base_link'
+        assert scan_received
+        assert scan_received[0].header.frame_id == 'laser'
+        assert len(scan_received[0].ranges) == 8
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
 def test_sim_node_applies_joint_cmd(scene_path: Path):
     rclpy.init(args=[])
     try:
         node = _make_node(scene_path)
         commander = rclpy.create_node('test_commander')
-        cmd_pub = commander.create_publisher(JointState, '/mujoco_sim/joint_cmd', 10)
+        cmd_pub = commander.create_publisher(
+            JointState, '/test_mujoco_sim/mujoco_sim/joint_cmd', 10
+        )
 
         cmd = JointState()
         cmd.name = ['shoulder']
@@ -82,4 +111,16 @@ def test_sim_node_rejects_missing_scene_path(tmp_path: Path):
         with pytest.raises(FileNotFoundError):
             _make_node(tmp_path / "does-not-exist.xml")
     finally:
+        rclpy.shutdown()
+
+
+def test_sim_node_allows_zero_scan_rate_when_scan_disabled(scene_path: Path):
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = _make_node(scene_path, scan_enabled=False, scan_rate_hz=0.0)
+        rclpy.spin_once(node, timeout_sec=0.1)
+    finally:
+        if node is not None:
+            node.destroy_node()
         rclpy.shutdown()
