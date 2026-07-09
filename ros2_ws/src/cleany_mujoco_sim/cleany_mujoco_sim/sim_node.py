@@ -5,10 +5,21 @@ from pathlib import Path
 import mujoco
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import JointState
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState, LaserScan
+from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
 from cleany_mujoco_sim.scene_loader import default_scene_path, load_model
-from cleany_mujoco_sim.state import apply_joint_cmd, joint_state_msg, steps_per_tick
+from cleany_mujoco_sim.state import (
+    apply_joint_cmd,
+    joint_state_msg,
+    laser_scan_msg,
+    odometry_msg,
+    scan_sample_count,
+    static_site_transform_msg,
+    steps_per_tick,
+    transform_msg,
+)
 
 
 class MujocoSimNode(Node):
@@ -18,34 +29,103 @@ class MujocoSimNode(Node):
         self.declare_parameter('scene_path', '')
         self.declare_parameter('publish_rate_hz', 60.0)
         self.declare_parameter('headless', True)
+        self.declare_parameter('base_body_name', 'chassis')
+        self.declare_parameter('lidar_site_name', 'lidar_site')
+        self.declare_parameter('odom_frame_id', 'odom')
+        self.declare_parameter('base_frame_id', 'base_link')
+        self.declare_parameter('laser_frame_id', 'laser')
+        self.declare_parameter('publish_odom_tf', True)
+        self.declare_parameter('scan_enabled', True)
+        self.declare_parameter('scan_rate_hz', 5.5)
+        self.declare_parameter('scan_sample_rate_hz', 8000.0)
+        self.declare_parameter('scan_samples', 0)
+        self.declare_parameter('scan_range_min', 0.15)
+        self.declare_parameter('scan_range_max', 12.0)
 
         scene_path_value = self.get_parameter('scene_path').get_parameter_value().string_value
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
         publish_rate_hz = self.get_parameter('publish_rate_hz').get_parameter_value().double_value
         self._headless = self.get_parameter('headless').get_parameter_value().bool_value
+        self._base_body_name = self.get_parameter('base_body_name').get_parameter_value().string_value
+        self._lidar_site_name = self.get_parameter('lidar_site_name').get_parameter_value().string_value
+        self._odom_frame_id = self.get_parameter('odom_frame_id').get_parameter_value().string_value
+        self._base_frame_id = self.get_parameter('base_frame_id').get_parameter_value().string_value
+        self._laser_frame_id = self.get_parameter('laser_frame_id').get_parameter_value().string_value
+        self._publish_odom_tf = self.get_parameter('publish_odom_tf').get_parameter_value().bool_value
+        self._scan_enabled = self.get_parameter('scan_enabled').get_parameter_value().bool_value
+        self._scan_rate_hz = self.get_parameter('scan_rate_hz').get_parameter_value().double_value
+        scan_sample_rate_hz = (
+            self.get_parameter('scan_sample_rate_hz').get_parameter_value().double_value
+        )
+        requested_scan_samples = (
+            self.get_parameter('scan_samples').get_parameter_value().integer_value
+        )
+        self._scan_range_min = self.get_parameter('scan_range_min').get_parameter_value().double_value
+        self._scan_range_max = self.get_parameter('scan_range_max').get_parameter_value().double_value
 
         if publish_rate_hz <= 0:
             raise ValueError('publish_rate_hz must be positive')
+        if self._scan_enabled and self._scan_rate_hz <= 0:
+            raise ValueError('scan_rate_hz must be positive')
+        if self._scan_enabled and self._scan_range_min >= self._scan_range_max:
+            raise ValueError('scan_range_min must be less than scan_range_max')
 
         if not scene_path.exists():
             raise FileNotFoundError(f'MuJoCo scene XML not found: {scene_path}')
 
         self._model, self._data = load_model(scene_path)
+        self._base_body_id = mujoco.mj_name2id(
+            self._model, mujoco.mjtObj.mjOBJ_BODY, self._base_body_name
+        )
+        if self._base_body_id < 0:
+            raise ValueError(f'MuJoCo body not found: {self._base_body_name}')
+        self._lidar_site_id = mujoco.mj_name2id(
+            self._model, mujoco.mjtObj.mjOBJ_SITE, self._lidar_site_name
+        )
+        if self._scan_enabled and self._lidar_site_id < 0:
+            raise ValueError(f'MuJoCo site not found: {self._lidar_site_name}')
+
+        mujoco.mj_forward(self._model, self._data)
         self._steps_per_tick = steps_per_tick(self._model.opt.timestep, publish_rate_hz)
+        self._scan_samples = 0
+        self._sim_time_at_last_scan = 0.0
+        if self._scan_enabled:
+            self._scan_samples = scan_sample_count(
+                requested_scan_samples, scan_sample_rate_hz, self._scan_rate_hz
+            )
+            self._sim_time_at_last_scan = -1.0 / self._scan_rate_hz
+
         self._joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
+        self._odom_pub = self.create_publisher(Odometry, 'odom', 10)
+        self._scan_pub = self.create_publisher(LaserScan, 'scan', 10)
+        self._tf_broadcaster = TransformBroadcaster(self)
+        self._static_tf_broadcaster = StaticTransformBroadcaster(self)
         self.create_subscription(JointState, '~/joint_cmd', self._on_joint_cmd, 10)
         self.create_timer(1.0 / publish_rate_hz, self._on_timer)
+        if self._scan_enabled:
+            self._static_tf_broadcaster.sendTransform(
+                static_site_transform_msg(
+                    self._model,
+                    self._data,
+                    self._base_body_id,
+                    self._lidar_site_id,
+                    self.get_clock().now(),
+                    self._base_frame_id,
+                    self._laser_frame_id,
+                )
+            )
 
         self._viewer = None
         if not self._headless:
-            import mujoco.viewer
+            import mujoco.viewer as mujoco_viewer
 
-            self._viewer = mujoco.viewer.launch_passive(self._model, self._data)
+            self._viewer = mujoco_viewer.launch_passive(self._model, self._data)
 
-    def destroy_node(self) -> bool:
+    def destroy_node(self) -> None:
         if self._viewer is not None:
             self._viewer.close()
-        return super().destroy_node()
+            self._viewer = None
+        super().destroy_node()
 
     def _on_joint_cmd(self, msg: JointState) -> None:
         apply_joint_cmd(self._model, self._data, msg)
@@ -53,9 +133,48 @@ class MujocoSimNode(Node):
     def _on_timer(self) -> None:
         for _ in range(self._steps_per_tick):
             mujoco.mj_step(self._model, self._data)
-        self._joint_state_pub.publish(
-            joint_state_msg(self._model, self._data, self.get_clock().now())
+        stamp = self.get_clock().now()
+        self._joint_state_pub.publish(joint_state_msg(self._model, self._data, stamp))
+        self._odom_pub.publish(
+            odometry_msg(
+                self._model,
+                self._data,
+                self._base_body_id,
+                stamp,
+                self._odom_frame_id,
+                self._base_frame_id,
+            )
         )
+        if self._publish_odom_tf:
+            self._tf_broadcaster.sendTransform(
+                transform_msg(
+                    self._data,
+                    self._base_body_id,
+                    stamp,
+                    self._odom_frame_id,
+                    self._base_frame_id,
+                )
+            )
+        should_publish_scan = (
+            self._scan_enabled
+            and self._data.time - self._sim_time_at_last_scan >= 1.0 / self._scan_rate_hz
+        )
+        if should_publish_scan:
+            self._scan_pub.publish(
+                laser_scan_msg(
+                    self._model,
+                    self._data,
+                    self._lidar_site_id,
+                    self._base_body_id,
+                    stamp,
+                    self._laser_frame_id,
+                    self._scan_rate_hz,
+                    self._scan_samples,
+                    self._scan_range_min,
+                    self._scan_range_max,
+                )
+            )
+            self._sim_time_at_last_scan = self._data.time
         if self._viewer is not None:
             self._viewer.sync()
 
