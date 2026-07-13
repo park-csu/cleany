@@ -1,5 +1,6 @@
 <mujoco model="xlerobot_scene">
   <include file="./xlerobot.xml"/>
+  <include file="./props.xml"/>
 
   <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"/>
 

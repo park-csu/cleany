@@ -1,0 +1,72 @@
+<mujoco model="props">
+  <asset>
+    <material name="wood" rgba="0.6 0.4 0.2 1"/>
+    <material name="can" rgba="0.8 0.1 0.1 1"/>
+    <material name="box_item" rgba="0.2 0.4 0.8 1"/>
+
+    <!-- YCB 025_mug (google_16k), decomposed with obj2mjcf/CoACD into 8 convex collision parts. -->
+    <texture type="2d" name="mug_texture" file="mug_texture.png"/>
+    <material name="mug_material" texture="mug_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="mug_visual" file="mug_visual.obj"/>
+    <mesh name="mug_collision_0" file="mug_collision_0.obj"/>
+    <mesh name="mug_collision_1" file="mug_collision_1.obj"/>
+    <mesh name="mug_collision_2" file="mug_collision_2.obj"/>
+    <mesh name="mug_collision_3" file="mug_collision_3.obj"/>
+    <mesh name="mug_collision_4" file="mug_collision_4.obj"/>
+    <mesh name="mug_collision_5" file="mug_collision_5.obj"/>
+    <mesh name="mug_collision_6" file="mug_collision_6.obj"/>
+    <mesh name="mug_collision_7" file="mug_collision_7.obj"/>
+  </asset>
+
+  <worldbody>
+    <!-- Table: static. Top + four legs as boxes. Top surface at z=0.5. -->
+    <body name="table" pos="0.6 0 0">
+      <geom name="table_top" type="box" size="0.4 0.3 0.02" pos="0 0 0.5"
+            material="wood" contype="1" conaffinity="1" condim="4" friction="1 0.01 0.01"/>
+      <geom name="table_leg1" type="box" size="0.02 0.02 0.25" pos=" 0.36  0.26 0.25" material="wood"/>
+      <geom name="table_leg2" type="box" size="0.02 0.02 0.25" pos="-0.36  0.26 0.25" material="wood"/>
+      <geom name="table_leg3" type="box" size="0.02 0.02 0.25" pos=" 0.36 -0.26 0.25" material="wood"/>
+      <geom name="table_leg4" type="box" size="0.02 0.02 0.25" pos="-0.36 -0.26 0.25" material="wood"/>
+    </body>
+
+    <!-- Grasp target 1: can. Dynamic freejoint, drops onto table top. -->
+    <body name="can1" pos="0.6 0.05 0.6">
+      <freejoint/>
+      <geom name="can1_geom" type="cylinder" size="0.033 0.06"
+            material="can" mass="0.4" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Grasp target 2: small box. Dynamic freejoint. -->
+    <body name="box1" pos="0.55 -0.1 0.6">
+      <freejoint/>
+      <geom name="box1_geom" type="box" size="0.03 0.03 0.03"
+            material="box_item" mass="0.2" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Grasp target 3: real-shaped mug mesh (YCB 025_mug). Mesh origin sits at its own base,
+         so pos.z = table top (0.5) plus clearance. CoACD collision hulls can overshoot the visual
+         mesh slightly; too little clearance causes an initial-penetration kick that tips the mug
+         over on spawn, so drop from a few cm up and let gravity settle it. -->
+    <body name="mug1" pos="0.65 0.15 0.53">
+      <freejoint/>
+      <geom name="mug1_visual" type="mesh" mesh="mug_visual" material="mug_material"
+            contype="0" conaffinity="0" density="0" group="2"/>
+      <geom name="mug1_collision_0" type="mesh" mesh="mug_collision_0" mass="0.35"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_1" type="mesh" mesh="mug_collision_1"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_2" type="mesh" mesh="mug_collision_2"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_3" type="mesh" mesh="mug_collision_3"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_4" type="mesh" mesh="mug_collision_4"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_5" type="mesh" mesh="mug_collision_5"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_6" type="mesh" mesh="mug_collision_6"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+      <geom name="mug1_collision_7" type="mesh" mesh="mug_collision_7"
+            contype="1" conaffinity="1" group="3" rgba="1 1 1 0" condim="4" friction="1 0.01 0.01"/>
+    </body>
+  </worldbody>
+</mujoco>
