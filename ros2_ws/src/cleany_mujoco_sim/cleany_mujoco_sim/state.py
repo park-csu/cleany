@@ -5,12 +5,15 @@ from functools import lru_cache
 
 import mujoco
 import numpy as np
+from cv_bridge import CvBridge
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.time import Time
-from sensor_msgs.msg import JointState, LaserScan
+from sensor_msgs.msg import Image, JointState, LaserScan
 
 _SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
+
+_CV_BRIDGE = CvBridge()
 
 
 @lru_cache(maxsize=None)
@@ -47,6 +50,14 @@ def joint_state_msg(
     msg.name = actuated_joint_names(model)
     msg.position = joint_positions(model, data)
     msg.velocity = joint_velocities(model, data)
+    return msg
+
+
+def image_msg(pixels: np.ndarray, stamp: Time, frame_id: str) -> Image:
+    """Convert a MuJoCo RGB render (HxWx3 uint8) into a sensor_msgs/Image."""
+    msg = _CV_BRIDGE.cv2_to_imgmsg(pixels, encoding="rgb8")
+    msg.header.stamp = stamp.to_msg()
+    msg.header.frame_id = frame_id
     return msg
 
 

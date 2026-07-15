@@ -6,12 +6,13 @@ import mujoco
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import JointState, LaserScan
+from sensor_msgs.msg import Image, JointState, LaserScan
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
 from cleany_mujoco_sim.scene_loader import default_scene_path, load_model
 from cleany_mujoco_sim.state import (
     apply_joint_cmd,
+    image_msg,
     joint_state_msg,
     laser_scan_msg,
     odometry_msg,
@@ -41,6 +42,13 @@ class MujocoSimNode(Node):
         self.declare_parameter('scan_samples', 0)
         self.declare_parameter('scan_range_min', 0.15)
         self.declare_parameter('scan_range_max', 12.0)
+        self.declare_parameter('camera_enabled', True)
+        self.declare_parameter('camera_name', 'head_realsense_rgb')
+        self.declare_parameter('camera_width', 640)
+        self.declare_parameter('camera_height', 480)
+        self.declare_parameter('camera_rate_hz', 15.0)
+        self.declare_parameter('camera_frame_id', 'head_camera_rgb_optical_frame')
+        self.declare_parameter('image_topic', 'image_raw')
 
         scene_path_value = self.get_parameter('scene_path').get_parameter_value().string_value
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
@@ -62,6 +70,13 @@ class MujocoSimNode(Node):
         )
         self._scan_range_min = self.get_parameter('scan_range_min').get_parameter_value().double_value
         self._scan_range_max = self.get_parameter('scan_range_max').get_parameter_value().double_value
+        self._camera_enabled = self.get_parameter('camera_enabled').get_parameter_value().bool_value
+        self._camera_name = self.get_parameter('camera_name').get_parameter_value().string_value
+        self._camera_width = self.get_parameter('camera_width').get_parameter_value().integer_value
+        self._camera_height = self.get_parameter('camera_height').get_parameter_value().integer_value
+        self._camera_rate_hz = self.get_parameter('camera_rate_hz').get_parameter_value().double_value
+        self._camera_frame_id = self.get_parameter('camera_frame_id').get_parameter_value().string_value
+        image_topic = self.get_parameter('image_topic').get_parameter_value().string_value
 
         if publish_rate_hz <= 0:
             raise ValueError('publish_rate_hz must be positive')
@@ -69,6 +84,10 @@ class MujocoSimNode(Node):
             raise ValueError('scan_rate_hz must be positive')
         if self._scan_enabled and self._scan_range_min >= self._scan_range_max:
             raise ValueError('scan_range_min must be less than scan_range_max')
+        if self._camera_enabled and self._camera_rate_hz <= 0:
+            raise ValueError('camera_rate_hz must be positive')
+        if self._camera_enabled and (self._camera_width <= 0 or self._camera_height <= 0):
+            raise ValueError('camera_width and camera_height must be positive')
 
         if not scene_path.exists():
             raise FileNotFoundError(f"MuJoCo scene XML not found: {scene_path}")
@@ -84,6 +103,11 @@ class MujocoSimNode(Node):
         )
         if self._scan_enabled and self._lidar_site_id < 0:
             raise ValueError(f'MuJoCo site not found: {self._lidar_site_name}')
+        self._camera_id = mujoco.mj_name2id(
+            self._model, mujoco.mjtObj.mjOBJ_CAMERA, self._camera_name
+        )
+        if self._camera_enabled and self._camera_id < 0:
+            raise ValueError(f'MuJoCo camera not found: {self._camera_name}')
 
         mujoco.mj_forward(self._model, self._data)
         self._steps_per_tick = steps_per_tick(self._model.opt.timestep, publish_rate_hz)
@@ -94,6 +118,16 @@ class MujocoSimNode(Node):
                 requested_scan_samples, scan_sample_rate_hz, self._scan_rate_hz
             )
             self._sim_time_at_last_scan = -1.0 / self._scan_rate_hz
+
+        self._renderer = None
+        self._image_pub = None
+        self._sim_time_at_last_frame = 0.0
+        if self._camera_enabled:
+            self._renderer = mujoco.Renderer(
+                self._model, self._camera_height, self._camera_width
+            )
+            self._image_pub = self.create_publisher(Image, image_topic, 10)
+            self._sim_time_at_last_frame = -1.0 / self._camera_rate_hz
 
         self._joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
         self._odom_pub = self.create_publisher(Odometry, 'odom', 10)
@@ -124,6 +158,8 @@ class MujocoSimNode(Node):
     def destroy_node(self) -> None:
         if self._viewer is not None:
             self._viewer.close()
+        if self._renderer is not None:
+            self._renderer.close()
 
         super().destroy_node()
 
@@ -175,6 +211,17 @@ class MujocoSimNode(Node):
                 )
             )
             self._sim_time_at_last_scan = self._data.time
+        should_publish_image = (
+            self._camera_enabled
+            and self._data.time - self._sim_time_at_last_frame >= 1.0 / self._camera_rate_hz
+        )
+        if should_publish_image:
+            self._renderer.update_scene(self._data, camera=self._camera_name)
+            pixels = self._renderer.render()
+            self._image_pub.publish(
+                image_msg(pixels, stamp, self._camera_frame_id)
+            )
+            self._sim_time_at_last_frame = self._data.time
         if self._viewer is not None:
             self._viewer.sync()
 

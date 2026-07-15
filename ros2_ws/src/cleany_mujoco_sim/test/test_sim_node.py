@@ -5,7 +5,7 @@ import pytest
 import rclpy
 from rclpy.parameter import Parameter
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import JointState, LaserScan
+from sensor_msgs.msg import Image, JointState, LaserScan
 
 from cleany_mujoco_sim.sim_node import MujocoSimNode
 from cleany_mujoco_sim.state import joint_positions
@@ -17,6 +17,7 @@ def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
         'publish_rate_hz': 1000.0,
         'headless': True,
         'scan_samples': 8,
+        'camera_enabled': False,
     }
     params.update(overrides)
     return MujocoSimNode(
@@ -64,6 +65,48 @@ def test_sim_node_publishes_odometry_and_scan(scene_path: Path):
         assert len(scan_received[0].ranges) == 8
     finally:
         node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_publishes_camera_image(scene_path: Path):
+    rclpy.init(args=[])
+    node = None
+    try:
+        try:
+            node = _make_node(
+                scene_path,
+                camera_enabled=True,
+                camera_width=64,
+                camera_height=48,
+                camera_rate_hz=100.0,
+            )
+        except Exception as exc:  # noqa: BLE001 - GL backend may be unavailable
+            pytest.skip(f'MuJoCo offscreen rendering unavailable: {exc}')
+
+        received: list[Image] = []
+        node.create_subscription(Image, 'image_raw', received.append, 10)
+
+        deadline = time.time() + 3.0
+        while not received and time.time() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+        assert received
+        assert received[0].encoding == 'rgb8'
+        assert received[0].width == 64
+        assert received[0].height == 48
+        assert received[0].header.frame_id == 'head_camera_rgb_optical_frame'
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_rejects_missing_camera(scene_path: Path):
+    rclpy.init(args=[])
+    try:
+        with pytest.raises(ValueError):
+            _make_node(scene_path, camera_enabled=True, camera_name='no_such_camera')
+    finally:
         rclpy.shutdown()
 
 

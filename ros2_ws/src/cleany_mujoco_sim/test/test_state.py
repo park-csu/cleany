@@ -9,6 +9,7 @@ from sensor_msgs.msg import JointState
 from cleany_mujoco_sim.state import (
     actuated_joint_names,
     apply_joint_cmd,
+    image_msg,
     joint_positions,
     joint_velocities,
     joint_state_msg,
@@ -104,6 +105,21 @@ def test_static_site_transform_msg_uses_relative_site_pose(model_data):
 
     assert msg.header.frame_id == "base_link"
     assert msg.child_frame_id == "laser"
+
+
+def test_image_msg_encodes_rgb8_with_header():
+    pixels = np.zeros((4, 6, 3), dtype=np.uint8)
+    pixels[0, 0] = (255, 0, 0)
+
+    msg = image_msg(pixels, Time(), "head_camera_rgb_optical_frame")
+
+    assert msg.encoding == "rgb8"
+    assert msg.height == 4
+    assert msg.width == 6
+    assert msg.step == 6 * 3
+    assert msg.header.frame_id == "head_camera_rgb_optical_frame"
+    assert len(msg.data) == 4 * 6 * 3
+    assert bytes(msg.data[0:3]) == bytes((255, 0, 0))
 
 
 def test_scan_sample_count_derives_a1m8_default_samples():

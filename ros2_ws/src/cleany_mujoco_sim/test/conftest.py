@@ -19,6 +19,7 @@ TINY_MJCF = """
     <body name="scan_target" pos="1 0 0">
       <geom type="box" size="0.05 0.5 0.5"/>
     </body>
+    <camera name="head_realsense_rgb" pos="0 -1 0.5" xyaxes="1 0 0 0 0 1"/>
   </worldbody>
 </mujoco>
 """

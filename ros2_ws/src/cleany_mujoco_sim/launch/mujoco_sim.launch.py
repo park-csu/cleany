@@ -17,6 +17,12 @@ def generate_launch_description() -> LaunchDescription:
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
     scan_rate_arg = DeclareLaunchArgument('scan_rate_hz', default_value='5.5')
     scan_samples_arg = DeclareLaunchArgument('scan_samples', default_value='0')
+    camera_enabled_arg = DeclareLaunchArgument('camera_enabled', default_value='true')
+    camera_name_arg = DeclareLaunchArgument('camera_name', default_value='head_realsense_rgb')
+    camera_width_arg = DeclareLaunchArgument('camera_width', default_value='640')
+    camera_height_arg = DeclareLaunchArgument('camera_height', default_value='480')
+    camera_rate_arg = DeclareLaunchArgument('camera_rate_hz', default_value='15.0')
+    image_topic_arg = DeclareLaunchArgument('image_topic', default_value='image_raw')
 
     node = Node(
         package='cleany_mujoco_sim',
@@ -29,6 +35,12 @@ def generate_launch_description() -> LaunchDescription:
                 'headless': LaunchConfiguration('headless'),
                 'scan_rate_hz': LaunchConfiguration('scan_rate_hz'),
                 'scan_samples': LaunchConfiguration('scan_samples'),
+                'camera_enabled': LaunchConfiguration('camera_enabled'),
+                'camera_name': LaunchConfiguration('camera_name'),
+                'camera_width': LaunchConfiguration('camera_width'),
+                'camera_height': LaunchConfiguration('camera_height'),
+                'camera_rate_hz': LaunchConfiguration('camera_rate_hz'),
+                'image_topic': LaunchConfiguration('image_topic'),
             }
         ],
         output='screen',
@@ -40,5 +52,11 @@ def generate_launch_description() -> LaunchDescription:
         headless_arg,
         scan_rate_arg,
         scan_samples_arg,
+        camera_enabled_arg,
+        camera_name_arg,
+        camera_width_arg,
+        camera_height_arg,
+        camera_rate_arg,
+        image_topic_arg,
         node,
     ])
