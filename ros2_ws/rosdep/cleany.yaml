@@ -3,3 +3,8 @@ mujoco:
     pip:
       packages:
         - mujoco
+ultralytics:
+  ubuntu:
+    pip:
+      packages:
+        - ultralytics

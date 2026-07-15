@@ -10,8 +10,10 @@
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
+  <depend>vision_msgs</depend>
 
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>ultralytics</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 
