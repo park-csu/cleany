@@ -1,7 +1,10 @@
 <mujoco model="xlerobot_scene">
   <include file="./xlerobot.xml"/>
 
-  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"/>
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
 
   <statistic center="0.3 0 0.4" extent="1"/>
 
