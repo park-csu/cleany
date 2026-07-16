@@ -1,0 +1,19 @@
+# Parameters for cleany_perception detection_node.
+# Load with:  ros2 run cleany_perception detection_node \
+#               --ros-args --params-file <path>/detection.yaml
+# or via the detection_sim.launch.py `params_file` argument.
+#
+# Nothing here is project truth; these are experiment defaults (AGENTS.md
+# section 4). Copy this file per host/environment and edit values instead of
+# passing many -p flags. device/GL backend stay host-controlled (see README).
+detection_node:
+  ros__parameters:
+    image_topic: /image_raw
+    detections_topic: /detections
+    weights: yolo11n.pt          # path or ultralytics model name (auto-downloaded)
+    conf: 0.25                   # confidence threshold
+    classes: []                  # COCO class-id filter; empty = all classes
+    device: ''                   # '' auto, 'cpu', 'cuda:0'/'0', 'mps'
+    detection_rate_hz: 5.0       # inference timer rate (decoupled from camera)
+    publish_annotated: true     # true -> also publish a bbox/label overlay image
+    annotated_topic: /detections_image

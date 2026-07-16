@@ -13,6 +13,9 @@
 
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>ultralytics</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>cleany_mujoco_sim</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 
