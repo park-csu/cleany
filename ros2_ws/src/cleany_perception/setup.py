@@ -19,7 +19,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # detection_node is registered in a later step once its main() is implemented.
+            'detection_node = cleany_perception.detection_node:main',
         ],
     },
 )

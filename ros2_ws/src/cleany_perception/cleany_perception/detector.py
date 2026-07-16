@@ -73,11 +73,20 @@ class YoloDetector:
         weights: str = 'yolo11n.pt',
         conf: float = 0.25,
         classes: Sequence[int] | None = None,
+        device: str = '',
     ) -> None:
         self._weights = weights
         self._conf = conf
         self._classes = list(classes) if classes is not None else None
+        # device: '' lets ultralytics auto-pick (CUDA if usable, else CPU);
+        # 'cpu', 'cuda:0'/'0', or 'mps' force a specific target. Kept
+        # configurable so the same code runs on any host (AGENTS.md section 4).
+        self._device = device
         self._model = None
+
+    def load(self) -> None:
+        """Load the model now (optional warm-up so the first detect() is fast)."""
+        self._ensure_model()
 
     def _ensure_model(self) -> None:
         if self._model is None:
@@ -88,12 +97,15 @@ class YoloDetector:
     def detect(self, image) -> list[Detection]:
         """Run detection on an RGB ndarray and return Detection candidates."""
         self._ensure_model()
-        results = self._model.predict(
-            source=image,
-            conf=self._conf,
-            classes=self._classes,
-            verbose=False,
-        )
+        predict_kwargs = {
+            'source': image,
+            'conf': self._conf,
+            'classes': self._classes,
+            'verbose': False,
+        }
+        if self._device != '':
+            predict_kwargs['device'] = self._device
+        results = self._model.predict(**predict_kwargs)
         if not results:
             return []
         boxes = results[0].boxes

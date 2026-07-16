@@ -17,3 +17,6 @@ ros2_ws/log/
 *.log
 *.tmp
 
+# ML model weights (downloaded at runtime, not source)
+*.pt
+
