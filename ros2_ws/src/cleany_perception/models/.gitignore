@@ -1,0 +1,6 @@
+# Canonical place to keep YOLO weights so their location is stable across runs.
+# The weights themselves are downloaded at runtime and are not source; keep the
+# directory tracked but ignore its contents.
+*
+!.gitignore
+!README.md
