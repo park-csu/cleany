@@ -5,15 +5,12 @@ from functools import lru_cache
 
 import mujoco
 import numpy as np
-from cv_bridge import CvBridge
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.time import Time
 from sensor_msgs.msg import Image, JointState, LaserScan
 
 _SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
-
-_CV_BRIDGE = CvBridge()
 
 
 @lru_cache(maxsize=None)
@@ -54,10 +51,22 @@ def joint_state_msg(
 
 
 def image_msg(pixels: np.ndarray, stamp: Time, frame_id: str) -> Image:
-    """Convert a MuJoCo RGB render (HxWx3 uint8) into a sensor_msgs/Image."""
-    msg = _CV_BRIDGE.cv2_to_imgmsg(pixels, encoding="rgb8")
+    """Convert a MuJoCo RGB render (HxWx3 uint8) into a sensor_msgs/Image.
+
+    Built manually instead of via cv_bridge: rgb8 packing is trivial and this
+    avoids the cv_bridge/pip-opencv ABI conflict with the perception ML stack.
+    """
+    pixels = np.ascontiguousarray(pixels, dtype=np.uint8)
+    height, width = pixels.shape[:2]
+    msg = Image()
     msg.header.stamp = stamp.to_msg()
     msg.header.frame_id = frame_id
+    msg.height = height
+    msg.width = width
+    msg.encoding = "rgb8"
+    msg.is_bigendian = 0
+    msg.step = width * 3
+    msg.data = pixels.tobytes()
     return msg
 
 

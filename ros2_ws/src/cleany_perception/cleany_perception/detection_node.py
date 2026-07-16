@@ -6,7 +6,7 @@ logic lives in detector.py so it stays unit-testable without ROS.
 
 Not implemented yet. Filled in Step 6, which will:
 - subscribe to the sim/robot Image topic (e.g. /image_raw from cleany_mujoco_sim),
-- convert with cv_bridge and call detector.detect(),
+- convert with imaging.image_to_ndarray() and call detector.detect(),
 - publish the detection result message (type decided in Step 4),
 - register a `detection_node` console_scripts entry point in setup.py.
 """

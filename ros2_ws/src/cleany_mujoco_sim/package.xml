@@ -11,7 +11,6 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>cv_bridge</depend>
   <depend>tf2_ros</depend>
   <depend>ament_index_python</depend>
   <depend>launch</depend>
