@@ -31,9 +31,50 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 - `~/joint_cmd` (`sensor_msgs/JointState`) - sets target joint positions
   directly. This is a simple simulation hook, not a controller.
 
-There is not yet a `/cmd_vel` base command interface. The current MuJoCo base
-model still uses the existing wheel setup in `hardware/xlerobot.xml`; mecanum
-base support needs a separate model and command adapter change.
+There is not yet a `/cmd_vel` base command interface. The MuJoCo model exposes
+four independent mecanum-wheel DC motor voltage inputs; a ROS mecanum command
+adapter is still required to convert chassis velocity commands into them.
+
+## Base Drive Model
+
+Each wheel uses an independent `PG42-4266-1270NE` output-shaft DC motor model.
+The actuator controls are terminal voltages named `rear_left_drive`,
+`rear_right_drive`, `front_left_drive`, and `front_right_drive`.
+
+- Nominal supply: `12 V`
+- Gearbox: `61:1`, with the published `72%` efficiency already included in the
+  manufacturer output torque
+- Manufacturer rated output: `2.94 N.m` at `103 rpm`
+- Calculated no-load output: `7000 / 61 rpm` (`12.017 rad/s`)
+- Simulation operating limit with 10% margin: `10.8 V`, `2.646 N.m`
+- Derated rated point: `92.7 rpm` (`9.708 rad/s`)
+- Derated no-load equilibrium: `103.28 rpm` (`10.815 rad/s`)
+
+The MJCF actuator is modeled directly at the gearbox output (`gear=1`), so the
+gear reduction and efficiency are not applied a second time. The motor input is
+voltage, not target wheel velocity; the future base adapter must perform wheel
+mixing and closed-loop velocity control.
+
+## Arm Servo Model
+
+Both arms use Feetech 12 V serial servos with the following assignment:
+
+- `Pitch_L`, `Elbow_L`, `Pitch_R`, and `Elbow_R`: `STS3250`
+- Shoulder rotation, wrist pitch/roll, jaws, and head pan/tilt: `STS3215`
+
+The modeled output limits apply a 10% operating margin to the manufacturer
+specifications:
+
+- `STS3215` (`ST-3215-C018`): `2.648 N.m` peak limit,
+  `0.883 N.m` derated rated torque, and `4.245 rad/s` no-load limit
+- `STS3250` (`ST-3250-C001`): `4.413 N.m` peak limit,
+  `1.412 N.m` derated rated torque, and `7.086 rad/s` no-load limit
+
+Position actuator and joint force limits use 90% of peak stall torque. Joint
+damping is calibrated to reproduce 90% of each no-load speed while saturated.
+The existing simulation position-loop gains are retained because Feetech
+documents the PID as configurable but does not publish one fixed factory gain.
+Current, thermal, and two-second overload shutdown behavior are not yet modeled.
 
 ## Launch Arguments
 
@@ -70,6 +111,8 @@ This package is still a simulation bridge, not the full robot interface.
 Implemented:
 
 - Load an XLeRobot MuJoCo scene.
+- Simulate four articulated 5-inch mecanum wheels with independent PG42 drive
+  motors.
 - Step the simulator on a ROS timer.
 - Publish joint state, odometry, laser scan, and TF data.
 - Apply direct joint position commands for simulation tests.
@@ -77,6 +120,6 @@ Implemented:
 Not implemented yet:
 
 - `/cmd_vel` or Nav2-compatible base command handling.
-- A mecanum wheel kinematic or physical base adapter.
+- A ROS mecanum command adapter and closed-loop wheel-speed controller.
 - Binding to `cleany_robot_interface`, `cleany_perception`, or the mission FSM.
 - Hardware-realistic controllers for the base or manipulators.
