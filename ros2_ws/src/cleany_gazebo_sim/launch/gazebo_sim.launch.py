@@ -7,13 +7,16 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+from cleany_gazebo_sim.world_generator import materialize_articulated_roller_world
+
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     mujoco_hardware = (
         Path(get_package_share_directory('cleany_mujoco_sim')) / 'hardware'
     )
-    default_world = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
+    world_template = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
+    default_world = materialize_articulated_roller_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
     bridge_config = package_share / 'config' / 'bridge.yaml'
 

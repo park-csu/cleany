@@ -1,6 +1,7 @@
 from pathlib import Path
 from xml.etree import ElementTree
 
+from cleany_gazebo_sim.world_generator import materialize_articulated_roller_world
 
 WORLD_PATH = (
     Path(__file__).resolve().parents[1] / 'worlds' / 'cleany_mecanum_prototype.sdf'
@@ -36,3 +37,18 @@ def test_world_reuses_mujoco_mesh_resource_uris():
     assert 'model://assets/raskogbody.stl' in mesh_uris
     assert 'model://assets/Base.stl' in mesh_uris
     assert 'model://assets/Moving_Jaw.stl' in mesh_uris
+
+
+def test_generated_world_contains_48_articulated_mecanum_rollers(tmp_path):
+    generated_world = materialize_articulated_roller_world(WORLD_PATH)
+    copied_world = tmp_path / generated_world.name
+    copied_world.write_text(generated_world.read_text(encoding='utf-8'), encoding='utf-8')
+
+    root = ElementTree.parse(copied_world).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+
+    roller_links = [link for link in model.findall('link') if '_roller_' in link.attrib['name']]
+    roller_joints = [joint for joint in model.findall('joint') if '_roller_' in joint.attrib['name']]
+    assert len(roller_links) == 48
+    assert len(roller_joints) == 48
