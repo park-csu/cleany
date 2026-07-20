@@ -93,6 +93,18 @@
       <!-- CLEANY_ARTICULATED_ROLLERS -->
 
       <!--
+        MuJoCo top_base_link: the upper support that physically and visually
+        connects the dual-arm mounts to the RASKOG chassis.
+      -->
+      <link name="top_base_link">
+        <pose relative_to="top_base_mount">0 0 0 0 0 0</pose>
+        <inertial><mass>0.2542</mass><inertia><ixx>0.0045</ixx><iyy>0.005</iyy><izz>0.0045</izz></inertia></inertial>
+        <visual name="support_body"><pose>-0.44 -0.005 -0.6 0 0 0</pose><geometry><mesh><uri>model://assets/topbase1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="support_motor"><pose>-0.298 0.006 -0.715 0 0 3.14</pose><geometry><mesh><uri>model://assets/topbase2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+      </link>
+      <joint name="top_base_mount" type="fixed"><pose relative_to="base_link">0 0 0.35 0 0 0</pose><parent>base_link</parent><child>top_base_link</child></joint>
+
+      <!--
         The arm's mass, center of mass, and full inertia tensor are copied
         from the MuJoCo XLeRobot model.  Convex collision meshes keep this
         dynamic geometry separate from the render meshes.  Gravity remains

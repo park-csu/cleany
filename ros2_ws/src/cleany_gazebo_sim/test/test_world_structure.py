@@ -37,6 +37,21 @@ def test_world_reuses_mujoco_mesh_resource_uris():
     assert 'model://assets/raskogbody.stl' in mesh_uris
     assert 'model://assets/Base.stl' in mesh_uris
     assert 'model://assets/Moving_Jaw.stl' in mesh_uris
+    assert 'model://assets/topbase1.stl' in mesh_uris
+    assert 'model://assets/topbase2.stl' in mesh_uris
+
+
+def test_world_contains_mujoco_top_base_arm_support():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+
+    support = model.find("link[@name='top_base_link']")
+    support_joint = model.find("joint[@name='top_base_mount']")
+    assert support is not None
+    assert support_joint is not None
+    assert support.findtext('inertial/mass') == '0.2542'
+    assert support_joint.findtext('parent') == 'base_link'
 
 
 def test_arm_links_use_mujoco_inertia_and_convex_collision_meshes():
