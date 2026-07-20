@@ -54,6 +54,22 @@ def test_world_contains_mujoco_top_base_arm_support():
     assert support_joint.findtext('parent') == 'base_link'
 
 
+def test_world_contains_three_mujoco_camera_modules():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    camera_names = {
+        sensor.attrib['name'] for sensor in root.findall(".//sensor")
+    }
+    assert camera_names == {
+        'head_realsense_rgb',
+        'head_realsense_depth',
+        'left_wrist_rgb',
+        'right_wrist_rgb',
+    }
+    assert root.find(".//link[@name='head_camera_link']") is not None
+    assert root.find(".//link[@name='left_wrist_camera_link']") is not None
+    assert root.find(".//link[@name='right_wrist_camera_link']") is not None
+
+
 def test_arm_links_use_mujoco_inertia_and_convex_collision_meshes():
     root = ElementTree.parse(WORLD_PATH).getroot()
     model = root.find("./world/model[@name='cleany_mecanum']")

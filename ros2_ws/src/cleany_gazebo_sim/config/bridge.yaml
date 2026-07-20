@@ -21,3 +21,27 @@
   ros_type_name: "rosgraph_msgs/msg/Clock"
   gz_type_name: "ignition.msgs.Clock"
   direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/head/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/head_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/head/depth/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/head_camera/depth/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/left_wrist/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/left_wrist_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/right_wrist/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/right_wrist_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
