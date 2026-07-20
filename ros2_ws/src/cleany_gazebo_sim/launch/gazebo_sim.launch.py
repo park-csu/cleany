@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -10,6 +10,9 @@ from launch_ros.actions import Node
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    mujoco_hardware = (
+        Path(get_package_share_directory('cleany_mujoco_sim')) / 'hardware'
+    )
     default_world = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
     base_config = package_share / 'config' / 'base.yaml'
     bridge_config = package_share / 'config' / 'bridge.yaml'
@@ -55,6 +58,11 @@ def generate_launch_description() -> LaunchDescription:
             world_arg,
             headless_arg,
             use_sim_time_arg,
+            # Reuse the MuJoCo package's source mesh directory instead of
+            # committing duplicate, large STL assets to this package.
+            AppendEnvironmentVariable(
+                'IGN_GAZEBO_RESOURCE_PATH', str(mujoco_hardware)
+            ),
             server,
             gui,
             bridge,

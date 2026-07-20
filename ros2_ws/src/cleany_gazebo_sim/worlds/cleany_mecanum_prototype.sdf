@@ -32,11 +32,13 @@
 
     <!--
       This is a kinematic prototype, not a hardware-accurate XLeRobot model.
-      Its 4-wheel layout mirrors the current MuJoCo logical arrangement:
-      rear wheels at x=-0.15, front wheels at x=0.15, and y=+/-0.255.
+      The RASKOG body visual and wheel layout originate in the current MuJoCo
+      XLeRobot model. The launch file adds cleany_mujoco_sim/hardware to the
+      Gazebo resource path so this world does not duplicate its STL assets.
     -->
     <model name="cleany_mecanum" xmlns:ignition="http://ignitionrobotics.org/schema">
-      <pose>0 0 0.18 0 0 0</pose>
+      <!-- Matches the MuJoCo chassis origin; wheel centers remain at z=0.0635. -->
+      <pose>0 0 0.38 0 0 0</pose>
 
       <link name="base_link">
         <inertial>
@@ -46,32 +48,39 @@
         <collision name="collision">
           <geometry><box><size>0.55 0.45 0.20</size></box></geometry>
         </collision>
-        <visual name="visual">
-          <geometry><box><size>0.55 0.45 0.20</size></box></geometry>
-          <material><diffuse>0.15 0.25 0.50 1</diffuse></material>
+        <visual name="raskog_body_visual">
+          <!-- MuJoCo: mesh=raskogbody, pos=-0.01668 0.502 0.515, euler=1.5708 0 0. -->
+          <pose>-0.01668 0.502 0.515 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <uri>model://assets/raskogbody.stl</uri>
+              <scale>0.0009 0.001 0.0009</scale>
+            </mesh>
+          </geometry>
+          <material><diffuse>0.12 0.30 0.75 1</diffuse></material>
         </visual>
       </link>
 
       <link name="rear_left_wheel">
-        <pose>-0.15 0.255 -0.1165 -1.5707 0 0</pose>
+        <pose>-0.15 0.255 -0.3165 -1.5707 0 0</pose>
         <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
         <collision name="collision"><geometry><sphere><radius>0.0635</radius></sphere></geometry><surface><friction><ode><mu>1.0</mu><mu2>0.0</mu2><fdir1 ignition:expressed_in="base_link">1 1 0</fdir1></ode></friction></surface></collision>
         <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
       </link>
       <link name="rear_right_wheel">
-        <pose>-0.15 -0.255 -0.1165 -1.5707 0 0</pose>
+        <pose>-0.15 -0.255 -0.3165 -1.5707 0 0</pose>
         <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
         <collision name="collision"><geometry><sphere><radius>0.0635</radius></sphere></geometry><surface><friction><ode><mu>1.0</mu><mu2>0.0</mu2><fdir1 ignition:expressed_in="base_link">1 -1 0</fdir1></ode></friction></surface></collision>
         <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
       </link>
       <link name="front_left_wheel">
-        <pose>0.15 0.255 -0.1165 -1.5707 0 0</pose>
+        <pose>0.15 0.255 -0.3165 -1.5707 0 0</pose>
         <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
         <collision name="collision"><geometry><sphere><radius>0.0635</radius></sphere></geometry><surface><friction><ode><mu>1.0</mu><mu2>0.0</mu2><fdir1 ignition:expressed_in="base_link">1 -1 0</fdir1></ode></friction></surface></collision>
         <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
       </link>
       <link name="front_right_wheel">
-        <pose>0.15 -0.255 -0.1165 -1.5707 0 0</pose>
+        <pose>0.15 -0.255 -0.3165 -1.5707 0 0</pose>
         <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
         <collision name="collision"><geometry><sphere><radius>0.0635</radius></sphere></geometry><surface><friction><ode><mu>1.0</mu><mu2>0.0</mu2><fdir1 ignition:expressed_in="base_link">1 1 0</fdir1></ode></friction></surface></collision>
         <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
