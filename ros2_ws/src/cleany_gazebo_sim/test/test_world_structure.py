@@ -97,6 +97,26 @@ def test_world_contains_three_mujoco_camera_modules():
             'model://assets/XLeRobot_camera2.stl',
         }
 
+    head_mount = root.find(".//joint[@name='head_camera_mount']")
+    assert head_mount is not None
+    assert head_mount.findtext('pose') == '0.025 0 0.03 0 0 0'
+
+    expected_wrist_mount_poses = {
+        'left_wrist_camera_mount': '0 -0.022 0.05 1.5708 0 -1.5708',
+        'right_wrist_camera_mount': '0 -0.021 0.05 1.5708 0 -1.5708',
+    }
+    for mount_name, expected_pose in expected_wrist_mount_poses.items():
+        mount = root.find(f".//joint[@name='{mount_name}']")
+        assert mount is not None
+        assert mount.findtext('pose') == expected_pose
+
+    for sensor_name in ('left_wrist_rgb', 'right_wrist_rgb'):
+        sensor = root.find(f".//sensor[@name='{sensor_name}']")
+        assert sensor is not None
+        assert sensor.findtext('pose') == (
+            '-0.00833 0.01494 0.003872 0 0.007614 -0.436597'
+        )
+
 
 def test_arm_links_use_mujoco_inertia_and_convex_collision_meshes():
     root = ElementTree.parse(WORLD_PATH).getroot()
