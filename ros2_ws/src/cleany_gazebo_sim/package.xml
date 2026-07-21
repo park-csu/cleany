@@ -7,8 +7,6 @@
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
   <depend>ament_index_python</depend>
   <depend>geometry_msgs</depend>
   <depend>launch</depend>
@@ -17,6 +15,7 @@
   <depend>nav_msgs</depend>
   <depend>rclpy</depend>
   <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
   <depend>rosgraph_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
