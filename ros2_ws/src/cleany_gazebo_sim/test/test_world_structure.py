@@ -69,6 +69,34 @@ def test_world_contains_three_mujoco_camera_modules():
     assert root.find(".//link[@name='left_wrist_camera_link']") is not None
     assert root.find(".//link[@name='right_wrist_camera_link']") is not None
 
+    head_pan = root.find(".//link[@name='head_pan_link']")
+    head_tilt = root.find(".//link[@name='head_tilt_link']")
+    assert head_pan is not None
+    assert head_tilt is not None
+    assert {
+        visual.findtext('geometry/mesh/uri') for visual in head_pan.findall('visual')
+    } == {
+        'model://assets/tophead1.stl',
+        'model://assets/tophead4.stl',
+    }
+    assert {
+        visual.findtext('geometry/mesh/uri') for visual in head_tilt.findall('visual')
+    } == {
+        'model://assets/tophead5.stl',
+        'model://assets/tophead6.stl',
+    }
+
+    for wrist_camera in ('left_wrist_camera_link', 'right_wrist_camera_link'):
+        wrist_link = root.find(f".//link[@name='{wrist_camera}']")
+        assert wrist_link is not None
+        assert {
+            visual.findtext('geometry/mesh/uri')
+            for visual in wrist_link.findall('visual')
+        } == {
+            'model://assets/XLeRobot_camera1.stl',
+            'model://assets/XLeRobot_camera2.stl',
+        }
+
 
 def test_arm_links_use_mujoco_inertia_and_convex_collision_meshes():
     root = ElementTree.parse(WORLD_PATH).getroot()
