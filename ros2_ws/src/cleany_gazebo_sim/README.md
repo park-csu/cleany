@@ -22,9 +22,10 @@ Manager integration은 아직 포함하지 않습니다.
 ## Dependencies
 
 Ubuntu 22.04 / ROS 2 Humble에서 Gazebo Fortress와 ROS bridge가 필요합니다.
+저장소 루트에서 rosdep으로 workspace 의존성을 설치합니다.
 
 ```bash
-sudo apt-get install ros-humble-ros-gz-bridge ros-humble-ros-gz-sim
+./scripts/rosdep install --from-paths ros2_ws/src --ignore-src -r -y
 ```
 
 ## Run
